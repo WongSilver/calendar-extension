@@ -1,0 +1,14 @@
+{
+  "extension_name": {
+    "message": "中国节假日日历",
+    "description": "扩展名称"
+  },
+  "extension_description": {
+    "message": "中国节假日日历扩展，支持农历显示、节假日标记、滚轮切换月份",
+    "description": "扩展描述"
+  },
+  "browser_action_title": {
+    "message": "中国节假日日历",
+    "description": "浏览器操作按钮标题"
+  }
+}
