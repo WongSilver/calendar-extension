@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build extension
+        run: bun run build:extension
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP archive
+        run: |
+          cd extension
+          zip -r ../chinese-holiday-calendar-${{ steps.get_version.outputs.VERSION }}.zip .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 中国节假日日历 ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## 中国节假日日历 ${{ steps.get_version.outputs.VERSION }}
+            
+            ### 功能特性
+            - 🗓️ 农历显示
+            - 🎉 节假日标记
+            - 🖱️ 滚轮切换月份
+            - 🌙 深色模式支持
+            
+            ### 安装方式
+            1. 下载 `chinese-holiday-calendar-${{ steps.get_version.outputs.VERSION }}.zip`
+            2. 解压文件
+            3. 在 Edge/Chrome 扩展管理页面开启"开发者模式"
+            4. 点击"加载解压缩的扩展"
+            5. 选择解压后的文件夹
+          files: |
+            chinese-holiday-calendar-${{ steps.get_version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
