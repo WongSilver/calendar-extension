@@ -189,25 +189,25 @@ const indexHtmlPath = path.join(extensionDir, 'index.html');
 if (fs.existsSync(indexHtmlPath)) {
   let htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
   
-  // 扩展模式专用样式 - 固定尺寸
-  // 日历宽度520 + 侧边栏150 + 间距(gap-1.5=6px) + 内边距(p-1=8px) = 684px
-  // 日历高度420 + 内边距(p-1=8px) = 428px
-  const extensionStyles = `
+// 扩展模式专用样式 - 固定尺寸
+// 日历宽度520 + 侧边栏150 + 间距(gap-1.5=6px) + 内边距(p-1=8px) = 684px
+// 日历高度430 + 内边距(p-1=8px) = 438px
+const extensionStyles = `
 <style id="extension-mode-styles">
 html, body {
   width: 684px !important;
-  height: 428px !important;
+  height: 438px !important;
   min-width: 684px !important;
-  min-height: 428px !important;
+  min-height: 438px !important;
   max-width: 684px !important;
-  max-height: 428px !important;
+  max-height: 438px !important;
   overflow: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 body > main {
   width: 684px !important;
-  height: 428px !important;
+  height: 438px !important;
   padding: 0 !important;
   margin: 0 !important;
   overflow: hidden !important;

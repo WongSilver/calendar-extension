@@ -1,17 +1,13 @@
 {
-  "name": "chinese-calendar-extension",
-  "version": "1.0.2",
+  "name": "chinese-holiday-calendar",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "build:extension": "bun run scripts/build-extension.mjs",
     "start": "next start -p 3000",
     "lint": "eslint .",
-    "db:push": "prisma db push",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "build:extension": "next build && node scripts/build-extension.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -72,7 +68,7 @@
     "react-resizable-panels": "^3.0.3",
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.15.4",
-    "sharp": "^0.34.3",
+    "sharp": "^0.34.5",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
