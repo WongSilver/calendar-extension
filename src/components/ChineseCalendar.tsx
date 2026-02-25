@@ -34,7 +34,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarDayCell } from '@/components/CalendarDayCell';
 import { CalendarSidebar } from '@/components/CalendarSidebar';
-import { getHolidayInfo, initializeHolidays, getHolidaysData, refreshHolidays } from '@/lib/holidays';
+import { getHolidayInfo, initializeHolidays, getHolidaysData, refreshHolidays, getCacheTime } from '@/lib/holidays';
 import {
   WEEKDAYS,
   MONTHS,
@@ -119,6 +119,7 @@ export function ChineseCalendar() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number | null>(null);
+  const [cacheTime, setCacheTime] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
 
@@ -130,6 +131,7 @@ export function ChineseCalendar() {
   useEffect(() => {
     setMounted(true);
     setSettings(settingsStorage.load());
+    setCacheTime(getCacheTime());
   }, []);
 
   // 加载节假日数据
@@ -139,6 +141,7 @@ export function ChineseCalendar() {
       try {
         await initializeHolidays();
         setHasHolidayData(getHolidaysData().length > 0);
+        setCacheTime(getCacheTime());
         setDataVersion(v => v + 1);
       } catch (error) {
         console.error('Failed to load holidays:', error);
@@ -234,6 +237,7 @@ export function ChineseCalendar() {
     try {
       await refreshHolidays();
       setHasHolidayData(getHolidaysData().length > 0);
+      setCacheTime(getCacheTime());
       setLastRefreshTime(now);
       showAlert('✓ 已刷新');
     } catch {
@@ -325,9 +329,9 @@ export function ChineseCalendar() {
                           <div className="flex items-center justify-between">
                             <span className="font-medium">节假日数据</span>
                             <div className="flex items-center gap-1">
-                              {lastRefreshTime && (
+                              {cacheTime && (
                                 <span className="text-[10px] text-muted-foreground">
-                                  {format(new Date(lastRefreshTime), 'HH:mm')}
+                                  {format(new Date(cacheTime), 'MM-dd HH:mm')}
                                 </span>
                               )}
                               <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={handleRefresh} disabled={isRefreshing}>

@@ -20,8 +20,12 @@ node_modules
 # production
 /build
 
-# extension build output
-/extension/
+# extension build output (only ignore generated files)
+/extension/index.html
+/extension/_not-found.*
+/extension/next-assets/
+/extension/inline-scripts/
+/extension/*.txt
 
 # release packages
 *.zip

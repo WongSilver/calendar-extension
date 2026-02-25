@@ -15,6 +15,7 @@ export interface HolidayInfo {
 
 // localStorage 缓存键
 const CACHE_KEY = 'chinese-holidays-cache';
+const CACHE_TIME_KEY = 'chinese-holidays-cache-time';
 // 缓存永久有效，只有用户手动刷新时才更新
 
 // 外部 API URL
@@ -121,6 +122,7 @@ function saveToLocalStorage(holidays: Holiday[]): void {
   
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(holidays));
+    localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
   } catch (error) {
     console.error('Failed to save holidays to localStorage:', error);
   }
@@ -219,9 +221,24 @@ export async function refreshHolidays(): Promise<void> {
   
   if (typeof window !== 'undefined') {
     localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(CACHE_TIME_KEY);
   }
   
   await ensureDataLoaded();
+}
+
+/**
+ * 获取缓存时间
+ */
+export function getCacheTime(): number | null {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const timestamp = localStorage.getItem(CACHE_TIME_KEY);
+    return timestamp ? parseInt(timestamp, 10) : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
