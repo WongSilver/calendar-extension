@@ -49,3 +49,7 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# extension
+/extension/inline-scripts/*
+/extension/next-assets/*
