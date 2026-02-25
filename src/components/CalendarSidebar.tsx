@@ -38,33 +38,19 @@ function calculateMonthStats(currentDate: Date, hasHolidayData: boolean): MonthS
   const month = currentDate.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  let workdays = 0;
-  let restDays = 0;
-  let holidays = 0;
-  let workdaysAdjusted = 0;
+  let workdays = 0, restDays = 0, holidays = 0, workdaysAdjusted = 0;
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month, day);
-    const info = getHolidayInfo(date);
+    const info = getHolidayInfo(new Date(year, month, day));
 
     if (hasHolidayData) {
-      if (info.isHoliday) {
-        holidays++;
-        restDays++;
-      } else if (info.isWorkday) {
-        workdaysAdjusted++;
-        workdays++;
-      } else if (info.isWeekend) {
-        restDays++;
-      } else {
-        workdays++;
-      }
+      if (info.isHoliday) { holidays++; restDays++; }
+      else if (info.isWorkday) { workdaysAdjusted++; workdays++; }
+      else if (info.isWeekend) restDays++;
+      else workdays++;
     } else {
-      if (info.isWeekend) {
-        restDays++;
-      } else {
-        workdays++;
-      }
+      if (info.isWeekend) restDays++;
+      else workdays++;
     }
   }
 
@@ -74,48 +60,45 @@ function calculateMonthStats(currentDate: Date, hasHolidayData: boolean): MonthS
 // 获取所有未来假期
 function getFutureHolidays(): NextHoliday[] {
   const holidays = getHolidaysData();
-  if (holidays.length === 0) return [];
+  if (!holidays.length) return [];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const futureHolidays = holidays
-    .filter(h => h.type === 'holiday' && new Date(h.date) >= today)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  if (futureHolidays.length === 0) return [];
-
   // 按假期名称分组
   const holidayMap = new Map<string, string[]>();
-  futureHolidays.forEach(h => {
-    const dates = holidayMap.get(h.name) || [];
-    dates.push(h.date);
-    holidayMap.set(h.name, dates);
-  });
+
+  holidays
+    .filter(h => h.type === 'holiday' && new Date(h.date) >= today)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .forEach(h => {
+      const dates = holidayMap.get(h.name) || [];
+      dates.push(h.date);
+      holidayMap.set(h.name, dates);
+    });
+
+  if (!holidayMap.size) return [];
 
   const result: NextHoliday[] = [];
-  const seenNames = new Set<string>();
+  const DAY_MS = 1000 * 60 * 60 * 24;
 
-  futureHolidays.forEach(h => {
-    if (seenNames.has(h.name)) return;
-    seenNames.add(h.name);
+  holidayMap.forEach((dates, name) => {
+    const startDate = new Date(dates[0] + 'T00:00:00');
+    const daysLeft = Math.ceil((startDate.getTime() - today.getTime()) / DAY_MS);
+    const start = dates[0];
+    const end = dates[dates.length - 1];
 
-    const sameHolidayDates = holidayMap.get(h.name)!;
-    const startDate = new Date(sameHolidayDates[0] + 'T00:00:00');
-    const daysLeft = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-    const start = sameHolidayDates[0];
-    const end = sameHolidayDates[sameHolidayDates.length - 1];
-
-    // 简洁日期格式：5.1 或 5.1-5.5
-    const dateRange = start === end
-      ? format(new Date(start), 'M.d')
-      : `${format(new Date(start), 'M.d')}-${format(new Date(end), 'M.d')}`;
-
-    result.push({ name: h.name, daysLeft, dateRange, startDate });
+    result.push({
+      name,
+      daysLeft,
+      dateRange: start === end
+        ? format(new Date(start), 'M.d')
+        : `${format(new Date(start), 'M.d')}-${format(new Date(end), 'M.d')}`,
+      startDate,
+    });
   });
 
-  return result;
+  return result.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
 // 日期详情模块

@@ -34,7 +34,8 @@ export const CalendarDayCell = memo(function CalendarDayCell({
       onClick={() => onSelect(day.date)}
       className={`
         relative p-1 h-[52px] rounded-lg transition-all duration-150
-        hover:scale-105 hover:shadow-md cursor-pointer
+        hover:scale-105 cursor-pointer
+        ${isSelected ? '' : 'hover:shadow-md'}
         ${bgClass} ${textClass} ${borderClass}
         flex flex-col items-center justify-start
         ${isCurrentMonth ? 'opacity-100' : 'opacity-45'}

@@ -14,16 +14,16 @@ export const MAX_YEAR = 2100;
 // 布局尺寸
 export const LAYOUT = {
   calendarWidth: 520,
-  calendarHeight: 430,
+  calendarHeight: 438,
   sidebarWidth: 150,
   gap: 4,
 } as const;
 
-// 侧边栏模块高度
+// 侧边栏模块高度 (总计 438px - gap 8px = 430px)
 export const SIDEBAR_HEIGHTS = {
-  dateDetail: 155,
-  stats: 142,
-  nextHoliday: 125,
+  dateDetail: 159,
+  stats: 144,
+  nextHoliday: 127,
 } as const;
 
 // 字号类型
@@ -208,12 +208,14 @@ export function getDayCellStyles(
     textClass = 'text-red-500 dark:text-red-300';
   }
 
-  // 边框 - 选中状态优先，其次是今天
-  borderClass = isSelected
-    ? 'border-2 border-primary'
-    : isCurrentDay
-      ? 'border border-gray-400 dark:border-gray-500'
-      : 'border border-transparent';
+  // 边框 - 选中状态使用内阴影，今天使用外边框
+  if (isSelected) {
+    borderClass = 'border border-transparent shadow-[inset_0_0_0_2px_var(--primary)]';
+  } else if (isCurrentDay) {
+    borderClass = 'border border-gray-400 dark:border-gray-500';
+  } else {
+    borderClass = 'border border-transparent';
+  }
 
   return { bgClass, textClass, borderClass };
 }

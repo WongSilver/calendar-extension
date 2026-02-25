@@ -20,6 +20,12 @@ node_modules
 # production
 /build
 
+# extension build output
+/extension/
+
+# release packages
+*.zip
+
 # misc
 .DS_Store
 *.pem
@@ -50,6 +56,5 @@ server.log
 # Skills directory
 /skills/
 
-# extension
-/extension/inline-scripts/*
-/extension/next-assets/*
+# upload directory
+/upload/

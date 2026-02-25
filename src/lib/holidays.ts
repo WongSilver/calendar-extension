@@ -15,8 +15,7 @@ export interface HolidayInfo {
 
 // localStorage 缓存键
 const CACHE_KEY = 'chinese-holidays-cache';
-const CACHE_TIME_KEY = 'chinese-holidays-cache-time';
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24小时缓存
+// 缓存永久有效，只有用户手动刷新时才更新
 
 // 外部 API URL
 const HOLIDAY_API_URL = 'https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json';
@@ -101,18 +100,13 @@ function transformHolidayData(apiData: HolidayAPIResponse): Holiday[] {
 }
 
 // 从 localStorage 读取缓存
-function loadFromLocalStorage(): { data: Holiday[]; timestamp: number } | null {
+function loadFromLocalStorage(): Holiday[] | null {
   if (typeof window === 'undefined') return null;
   
   try {
     const cached = localStorage.getItem(CACHE_KEY);
-    const timestamp = localStorage.getItem(CACHE_TIME_KEY);
-    
-    if (cached && timestamp) {
-      return {
-        data: JSON.parse(cached),
-        timestamp: parseInt(timestamp, 10),
-      };
+    if (cached) {
+      return JSON.parse(cached);
     }
   } catch (error) {
     console.error('Failed to load holidays from localStorage:', error);
@@ -127,7 +121,6 @@ function saveToLocalStorage(holidays: Holiday[]): void {
   
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(holidays));
-    localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
   } catch (error) {
     console.error('Failed to save holidays to localStorage:', error);
   }
@@ -149,26 +142,22 @@ async function ensureDataLoaded(): Promise<void> {
   if (isInitialized && holidaysCache.length > 0) return;
 
   const cached = loadFromLocalStorage();
-  const now = Date.now();
 
-  // 使用有效缓存
-  if (cached?.data.length && now - cached.timestamp < CACHE_DURATION) {
-    holidaysCache = cached.data;
+  // 使用缓存（永久有效）
+  if (cached?.length) {
+    holidaysCache = cached;
     holidayMapCache = buildHolidayMap(holidaysCache);
     isInitialized = true;
     return;
   }
 
-  // 获取新数据
+  // 无缓存时从 API 获取
   const holidays = await fetchHolidaysFromAPI();
 
   if (holidays.length > 0) {
     holidaysCache = holidays;
     holidayMapCache = buildHolidayMap(holidaysCache);
     saveToLocalStorage(holidays);
-  } else if (cached?.data.length) {
-    holidaysCache = cached.data;
-    holidayMapCache = buildHolidayMap(holidaysCache);
   }
   isInitialized = true;
 }
@@ -230,7 +219,6 @@ export async function refreshHolidays(): Promise<void> {
   
   if (typeof window !== 'undefined') {
     localStorage.removeItem(CACHE_KEY);
-    localStorage.removeItem(CACHE_TIME_KEY);
   }
   
   await ensureDataLoaded();
@@ -250,18 +238,4 @@ export function getHolidaysByMonth(year: number, month: number): Holiday[] {
   const monthStr = String(month).padStart(2, '0');
   const prefix = `${year}-${monthStr}`;
   return holidaysCache.filter(h => h.date.startsWith(prefix));
-}
-
-/**
- * 获取缓存时间
- */
-export function getCacheTime(): number | null {
-  if (typeof window === 'undefined') return null;
-  
-  try {
-    const timestamp = localStorage.getItem(CACHE_TIME_KEY);
-    return timestamp ? parseInt(timestamp, 10) : null;
-  } catch {
-    return null;
-  }
 }

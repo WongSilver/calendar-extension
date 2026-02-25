@@ -55,6 +55,22 @@ function copyDir(src, dest) {
 copyDir(outDir, extensionDir);
 console.log('✅ 静态文件已复制到 extension 目录');
 
+// 复制 public 目录中的静态资源
+const publicDir = path.join(__dirname, '..', 'public');
+if (fs.existsSync(publicDir)) {
+  const publicFiles = fs.readdirSync(publicDir);
+  publicFiles.forEach(file => {
+    if (file !== 'robots.txt') { // 不复制 robots.txt
+      const srcPath = path.join(publicDir, file);
+      const destPath = path.join(extensionDir, file);
+      if (fs.lstatSync(srcPath).isFile()) {
+        fs.copyFileSync(srcPath, destPath);
+        console.log(`  ✓ 复制 ${file}`);
+      }
+    }
+  });
+}
+
 // 重命名 _next 目录为 next-assets（Edge 扩展不允许下划线开头）
 const nextDir = path.join(extensionDir, '_next');
 const newNextDir = path.join(extensionDir, 'next-assets');
@@ -192,24 +208,24 @@ if (fs.existsSync(indexHtmlPath)) {
   let htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
 
   // 扩展模式专用样式 - 固定尺寸
-  // 日历宽度520 + 侧边栏150 + 间距(gap-1.5=6px) + 内边距(p-1=8px) = 684px
-  // 日历高度430 + 内边距(p-1=8px) = 438px
+  // 宽度: 日历520 + 侧边栏150 + 间距6 + 内边距8 = 684px
+  // 高度: 日历438 + 内边距8 = 446px
   const extensionStyles = `
 <style id="extension-mode-styles">
 html, body {
   width: 684px !important;
-  height: 438px !important;
+  height: 446px !important;
   min-width: 684px !important;
-  min-height: 438px !important;
+  min-height: 446px !important;
   max-width: 684px !important;
-  max-height: 438px !important;
+  max-height: 446px !important;
   overflow: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 body > main {
   width: 684px !important;
-  height: 438px !important;
+  height: 446px !important;
   padding: 0 !important;
   margin: 0 !important;
   overflow: hidden !important;
@@ -220,7 +236,7 @@ body > main {
   if (!htmlContent.includes('extension-mode-styles')) {
     htmlContent = htmlContent.replace('</head>', extensionStyles + '</head>');
     fs.writeFileSync(indexHtmlPath, htmlContent, 'utf8');
-    console.log('✅ 已注入扩展模式固定尺寸样式 (684x438)');
+    console.log('✅ 已注入扩展模式固定尺寸样式 (684x446)');
   }
 }
 

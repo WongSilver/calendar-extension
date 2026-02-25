@@ -18,10 +18,7 @@ export const metadata: Metadata = {
   title: "中国节假日日历",
   description: "显示中国法定节假日和调休安排的日历应用，支持年月切换和节假日自动更新。",
   keywords: ["中国节假日", "日历", "法定假日", "调休", "假期安排"],
-  authors: [{ name: "Z.ai Team" }],
-  icons: {
-    icon: "/logo.svg",
-  },
+  authors: [{ name: "WongSilver" }],
 };
 
 export default function RootLayout({

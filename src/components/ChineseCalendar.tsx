@@ -9,7 +9,6 @@ import {
   addWeeks,
   subMonths,
   addMonths,
-  isSameMonth,
   isSameDay,
   isToday,
 } from 'date-fns';
@@ -35,7 +34,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarDayCell } from '@/components/CalendarDayCell';
 import { CalendarSidebar } from '@/components/CalendarSidebar';
-import { getHolidayInfo, initializeHolidays, getHolidaysData, refreshHolidays, getCacheTime } from '@/lib/holidays';
+import { getHolidayInfo, initializeHolidays, getHolidaysData, refreshHolidays } from '@/lib/holidays';
 import {
   WEEKDAYS,
   MONTHS,
@@ -50,6 +49,7 @@ import {
 
 const SETTINGS_KEY = 'chinese-calendar-settings';
 const REFRESH_COOLDOWN = 10 * 60 * 1000;
+const DAY_MS = 1000 * 60 * 60 * 24;
 
 interface Settings {
   weekStartsOn: 0 | 1;
@@ -85,18 +85,17 @@ const settingsStorage = {
 };
 
 // 生成日历数据（42天）
-function generateCalendarData(
-  startDate: Date,
-  referenceDate: Date,
-  weekStartsOn: 0 | 1
-): CalendarDay[] {
+function generateCalendarData(startDate: Date, referenceDate: Date): CalendarDay[] {
+  const refYear = referenceDate.getFullYear();
+  const refMonth = referenceDate.getMonth();
+
   return Array.from({ length: 42 }, (_, i) => {
     const day = addDays(startDate, i);
     const holidayInfo = getHolidayInfo(day);
     const lunarInfo = getLunarInfo(day);
     return {
       date: day,
-      isCurrentMonth: isSameMonth(day, referenceDate),
+      isCurrentMonth: day.getFullYear() === refYear && day.getMonth() === refMonth,
       holidayInfo: {
         name: holidayInfo.name,
         isHoliday: holidayInfo.isHoliday,
@@ -120,7 +119,6 @@ export function ChineseCalendar() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number | null>(null);
-  const [cacheTime, setCacheTime] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
 
@@ -132,7 +130,6 @@ export function ChineseCalendar() {
   useEffect(() => {
     setMounted(true);
     setSettings(settingsStorage.load());
-    setCacheTime(getCacheTime());
   }, []);
 
   // 加载节假日数据
@@ -142,7 +139,6 @@ export function ChineseCalendar() {
       try {
         await initializeHolidays();
         setHasHolidayData(getHolidaysData().length > 0);
-        setCacheTime(getCacheTime());
         setDataVersion(v => v + 1);
       } catch (error) {
         console.error('Failed to load holidays:', error);
@@ -168,32 +164,29 @@ export function ChineseCalendar() {
     const startDate = settings.scrollMode === 'month'
       ? startOfWeek(startOfMonth(currentDate), { weekStartsOn: settings.weekStartsOn })
       : startOfWeek(currentDate, { weekStartsOn: settings.weekStartsOn });
-    return generateCalendarData(startDate, currentDate, settings.weekStartsOn);
+    return generateCalendarData(startDate, currentDate);
   }, [currentDate, settings.weekStartsOn, settings.scrollMode, dataVersion]);
 
   // 导航
   const navigate = useCallback((direction: 'prev' | 'next', unit: 'year' | 'month' | 'week') => {
+    const delta = direction === 'prev' ? -1 : 1;
     let newDate: Date;
 
-    switch (unit) {
-      case 'year': {
-        const year = direction === 'prev' ? currentDate.getFullYear() - 1 : currentDate.getFullYear() + 1;
-        if (year < MIN_YEAR || year > MAX_YEAR) {
-          showAlert(`已到达${year < MIN_YEAR ? '最小' : '最大'}年份 ${year < MIN_YEAR ? MIN_YEAR : MAX_YEAR} 年`);
-          return;
-        }
-        newDate = new Date(year, currentDate.getMonth(), 1);
-        break;
+    if (unit === 'year') {
+      const year = currentDate.getFullYear() + delta;
+      if (year < MIN_YEAR || year > MAX_YEAR) {
+        showAlert(`已到达${year < MIN_YEAR ? '最小' : '最大'}年份 ${year < MIN_YEAR ? MIN_YEAR : MAX_YEAR} 年`);
+        return;
       }
-      case 'month':
-        newDate = direction === 'prev' ? subMonths(currentDate, 1) : addMonths(currentDate, 1);
-        break;
-      case 'week':
-        newDate = addWeeks(currentDate, direction === 'prev' ? -1 : 1);
-        break;
+      newDate = new Date(year, currentDate.getMonth(), 1);
+    } else if (unit === 'month') {
+      newDate = delta > 0 ? addMonths(currentDate, 1) : subMonths(currentDate, 1);
+    } else {
+      newDate = addWeeks(currentDate, delta);
     }
 
-    if (newDate.getFullYear() < MIN_YEAR || newDate.getFullYear() > MAX_YEAR) {
+    const newYear = newDate.getFullYear();
+    if (newYear < MIN_YEAR || newYear > MAX_YEAR) {
       showAlert('已到达日期边界');
       return;
     }
@@ -214,10 +207,10 @@ export function ChineseCalendar() {
     wheelLockRef.current = true;
     navigate(e.deltaY > 0 ? 'next' : 'prev', settings.scrollMode === 'week' ? 'week' : 'month');
 
-    // 150ms 防抖
+    // 70ms 防抖
     setTimeout(() => {
       wheelLockRef.current = false;
-    }, 150);
+    }, 70);
   }, [isSelectOpen, isSettingsOpen, settings.scrollMode, navigate]);
 
   useEffect(() => {
@@ -241,7 +234,6 @@ export function ChineseCalendar() {
     try {
       await refreshHolidays();
       setHasHolidayData(getHolidaysData().length > 0);
-      setCacheTime(getCacheTime());
       setLastRefreshTime(now);
       showAlert('✓ 已刷新');
     } catch {
@@ -333,9 +325,11 @@ export function ChineseCalendar() {
                           <div className="flex items-center justify-between">
                             <span className="font-medium">节假日数据</span>
                             <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-muted-foreground">
-                                {cacheTime ? format(new Date(cacheTime), 'MM-dd HH:mm') : '未知'}
-                              </span>
+                              {lastRefreshTime && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {format(new Date(lastRefreshTime), 'HH:mm')}
+                                </span>
+                              )}
                               <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={handleRefresh} disabled={isRefreshing}>
                                 <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
                               </Button>
@@ -408,7 +402,7 @@ export function ChineseCalendar() {
                 </div>
               </CardHeader>
 
-              <CardContent className="px-3 pb-1 pt-0 flex-1 flex flex-col overflow-hidden">
+              <CardContent className="px-3 pb-0 pt-0 flex-1 flex flex-col">
                 <div className="grid grid-cols-7 mb-0 shrink-0">
                   {weekdays.map((day, index) => (
                     <div key={day}
@@ -421,7 +415,7 @@ export function ChineseCalendar() {
                 </div>
 
                 <TooltipProvider>
-                  <div className="flex-1 overflow-hidden bg-card p-1">
+                  <div className="flex-1 bg-card p-1">
                     <div className="grid grid-cols-7 gap-1 w-full h-full">
                       {calendarData.map((day) => (
                         <CalendarDayCell
