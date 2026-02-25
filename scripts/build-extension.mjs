@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { $ } from 'bun';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,10 +12,11 @@ const extensionDir = path.join(__dirname, '..', 'extension');
 
 console.log('🚀 开始构建 Edge 扩展...\n');
 
-// 检查 out 目录是否存在
+// 检查 out 目录是否存在，不存在则先构建
 if (!fs.existsSync(outDir)) {
-  console.error('❌ 请先运行 next build 生成静态文件');
-  process.exit(1);
+  console.log('📦 未找到 out 目录，开始构建 Next.js 项目...');
+  await $`bun run build`.quiet();
+  console.log('✅ Next.js 构建完成\n');
 }
 
 // 清空 extension 目录中的旧文件（保留 icons 和 manifest.json）
@@ -95,26 +97,26 @@ function removeDebugBorder(dir) {
     } else if (entry.name.endsWith('.html') || entry.name.endsWith('.js') || entry.name.endsWith('.css')) {
       let content = fs.readFileSync(fullPath, 'utf8');
       let modified = false;
-      
+
       // 移除 debug-extension-border 类名
       if (content.includes('debug-extension-border')) {
         content = content.replace(/\s*debug-extension-border\s*/g, ' ');
         content = content.replace(/\s+/g, ' ').replace(/class="\s*"/g, 'class=""');
         modified = true;
       }
-      
+
       // 移除 DEBUG-BORDER 注释
       if (content.includes('DEBUG-BORDER')) {
         content = content.replace(/\/\*\s*DEBUG-BORDER[^*]*\*\//g, '');
         modified = true;
       }
-      
+
       // 移除 CSS 中的调试边框样式
       if (content.includes('.debug-extension-border')) {
         content = content.replace(/\.debug-extension-border\s*\{[^}]*\}/g, '');
         modified = true;
       }
-      
+
       if (modified) {
         fs.writeFileSync(fullPath, content, 'utf8');
       }
@@ -130,35 +132,35 @@ function extractInlineScripts(htmlPath) {
   let content = fs.readFileSync(htmlPath, 'utf8');
   let scriptCounter = 0;
   const inlineScriptDir = path.join(extensionDir, 'inline-scripts');
-  
+
   // 创建存放内联脚本的目录
   if (!fs.existsSync(inlineScriptDir)) {
     fs.mkdirSync(inlineScriptDir, { recursive: true });
   }
-  
+
   // 匹配非 src 的 script 标签（内联脚本）
   const inlineScriptRegex = /<script(?![^>]*\ssrc=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi;
-  
+
   content = content.replace(inlineScriptRegex, (match, scriptContent) => {
     // 跳过空脚本
     if (!scriptContent || !scriptContent.trim()) {
       return match;
     }
-    
+
     scriptCounter++;
     const scriptFileName = `inline-${Date.now()}-${scriptCounter}.js`;
     const scriptFilePath = path.join(inlineScriptDir, scriptFileName);
-    
+
     // 写入外部脚本文件
     fs.writeFileSync(scriptFilePath, scriptContent, 'utf8');
-    
+
     // 返回外部脚本引用
     return `<script src="/inline-scripts/${scriptFileName}"></script>`;
   });
-  
+
   // 写回更新后的 HTML
   fs.writeFileSync(htmlPath, content, 'utf8');
-  
+
   return scriptCounter;
 }
 
@@ -188,11 +190,11 @@ console.log(`✅ 已提取 ${extractedCount} 个内联脚本到外部文件`);
 const indexHtmlPath = path.join(extensionDir, 'index.html');
 if (fs.existsSync(indexHtmlPath)) {
   let htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
-  
-// 扩展模式专用样式 - 固定尺寸
-// 日历宽度520 + 侧边栏150 + 间距(gap-1.5=6px) + 内边距(p-1=8px) = 684px
-// 日历高度430 + 内边距(p-1=8px) = 438px
-const extensionStyles = `
+
+  // 扩展模式专用样式 - 固定尺寸
+  // 日历宽度520 + 侧边栏150 + 间距(gap-1.5=6px) + 内边距(p-1=8px) = 684px
+  // 日历高度430 + 内边距(p-1=8px) = 438px
+  const extensionStyles = `
 <style id="extension-mode-styles">
 html, body {
   width: 684px !important;
@@ -213,12 +215,12 @@ body > main {
   overflow: hidden !important;
 }
 </style>`;
-  
+
   // 在 </head> 前插入样式
   if (!htmlContent.includes('extension-mode-styles')) {
     htmlContent = htmlContent.replace('</head>', extensionStyles + '</head>');
     fs.writeFileSync(indexHtmlPath, htmlContent, 'utf8');
-    console.log('✅ 已注入扩展模式固定尺寸样式 (684x428)');
+    console.log('✅ 已注入扩展模式固定尺寸样式 (684x438)');
   }
 }
 
