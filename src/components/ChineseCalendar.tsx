@@ -357,7 +357,7 @@ export function ChineseCalendar() {
                     </Select>
 
                     <Button variant="default" size="sm" onClick={goToToday}
-                      className="h-8 px-3 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600">
+                      className="h-8 px-3 bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-500 dark:hover:bg-orange-400">
                       今天
                     </Button>
 

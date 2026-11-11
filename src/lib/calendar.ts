@@ -198,7 +198,9 @@ export function getDayCellStyles(
 
   // 选中日期使用柔和的蓝色高亮，避免亮色主题下出现黑色描边。
   if (isSelected) {
-    bgClass = 'bg-sky-100 dark:bg-sky-900/45';
+    if (!holidayInfo.isHoliday && !holidayInfo.isWorkday) {
+      bgClass = 'bg-sky-100 dark:bg-sky-900/45';
+    }
     borderClass = 'border border-sky-400/70 dark:border-sky-400/60';
   } else if (isCurrentDay) {
     borderClass = 'border border-gray-400 dark:border-gray-500';

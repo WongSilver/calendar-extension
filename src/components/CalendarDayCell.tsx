@@ -34,13 +34,13 @@ export const CalendarDayCell = memo(function CalendarDayCell({
       onClick={() => onSelect(day.date)}
       aria-pressed={isSelected}
       className={`
-        relative p-1 h-[52px] rounded-lg transition-all duration-150
-        hover:scale-105 cursor-pointer
+        relative p-1 h-[52px] rounded-lg cursor-pointer
+        transition-[background-color,border-color,filter] duration-150
+        hover:brightness-95 dark:hover:brightness-110
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70
-        ${isSelected ? '' : 'hover:shadow-md'}
         ${bgClass} ${textClass} ${borderClass}
         flex flex-col items-center justify-start
-        ${isCurrentMonth ? 'opacity-100' : 'opacity-45'}
+        ${isCurrentMonth ? 'opacity-100' : 'opacity-50 dark:opacity-60'}
       `}
     >
       <span className={`${fontConfig.date} font-bold ${isCurrentDay ? 'text-primary' : ''}`}>
