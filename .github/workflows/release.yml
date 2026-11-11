@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-release:
-    name: Build and Release
+    name: Build, Release, and Publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -67,3 +67,132 @@ jobs:
             chinese-holiday-calendar-${{ steps.get_version.outputs.VERSION }}.zip
           draft: false
           prerelease: false
+
+      - name: Publish to Microsoft Edge Add-ons
+        env:
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+          EXTENSION_PACKAGE: chinese-holiday-calendar-${{ steps.get_version.outputs.VERSION }}.zip
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${EDGE_API_KEY:?Missing EDGE_API_KEY repository secret}"
+          : "${EDGE_CLIENT_ID:?Missing EDGE_CLIENT_ID repository secret}"
+          : "${EDGE_PRODUCT_ID:?Missing EDGE_PRODUCT_ID repository secret}"
+
+          API_ROOT="https://api.addons.microsoftedge.microsoft.com"
+          AUTH_HEADERS=(
+            --header "Authorization: ApiKey ${EDGE_API_KEY}"
+            --header "X-ClientID: ${EDGE_CLIENT_ID}"
+          )
+
+          wait_for_operation() {
+            local operation_url="$1"
+            local label="$2"
+            local response_file
+            response_file="$(mktemp)"
+
+            for attempt in $(seq 1 60); do
+              curl --fail --silent --show-error \
+                "${AUTH_HEADERS[@]}" \
+                --output "$response_file" \
+                "$operation_url"
+
+              status="$(jq -r '.status // empty' "$response_file")"
+              echo "${label} status (${attempt}/60): ${status:-Unknown}"
+
+              case "$status" in
+                Succeeded|Success|Completed)
+                  cat "$response_file" > "${RUNNER_TEMP}/edge-${label}-result.json"
+                  rm -f "$response_file"
+                  return 0
+                  ;;
+                InProgress|Pending|Queued|"")
+                  sleep 10
+                  ;;
+                *)
+                  jq . "$response_file"
+                  rm -f "$response_file"
+                  return 1
+                  ;;
+              esac
+            done
+
+            echo "Timed out waiting for Edge ${label} operation" >&2
+            rm -f "$response_file"
+            return 1
+          }
+
+          upload_headers="$(mktemp)"
+          upload_body="$(mktemp)"
+          upload_code="$(curl --silent --show-error \
+            "${AUTH_HEADERS[@]}" \
+            --header "Content-Type: application/zip" \
+            --request POST \
+            --upload-file "$EXTENSION_PACKAGE" \
+            --dump-header "$upload_headers" \
+            --output "$upload_body" \
+            --write-out '%{http_code}' \
+            "${API_ROOT}/v1/products/${EDGE_PRODUCT_ID}/submissions/draft/package")"
+
+          if [[ "$upload_code" != "202" ]]; then
+            echo "Edge package upload failed with HTTP ${upload_code}" >&2
+            cat "$upload_body"
+            exit 1
+          fi
+
+          upload_location="$(awk 'BEGIN { IGNORECASE=1 } /^location:/ { sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit }' "$upload_headers")"
+          if [[ -z "$upload_location" ]]; then
+            echo "Edge package upload response did not include a Location header" >&2
+            exit 1
+          fi
+
+          upload_operation_id="${upload_location%/}"
+          upload_operation_id="${upload_operation_id##*/}"
+          wait_for_operation \
+            "${API_ROOT}/v1/products/${EDGE_PRODUCT_ID}/submissions/draft/package/operations/${upload_operation_id}" \
+            "upload"
+
+          publish_headers="$(mktemp)"
+          publish_body="$(mktemp)"
+          publish_notes="Automated release ${GITHUB_REF_NAME} from ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+          publish_payload="$(jq -cn --arg notes "$publish_notes" '{notes: $notes}')"
+          publish_code="$(curl --silent --show-error \
+            "${AUTH_HEADERS[@]}" \
+            --header "Content-Type: application/json" \
+            --request POST \
+            --data "$publish_payload" \
+            --dump-header "$publish_headers" \
+            --output "$publish_body" \
+            --write-out '%{http_code}' \
+            "${API_ROOT}/v1/products/${EDGE_PRODUCT_ID}/submissions")"
+
+          if [[ "$publish_code" != "202" ]]; then
+            echo "Edge submission failed with HTTP ${publish_code}" >&2
+            cat "$publish_body"
+            exit 1
+          fi
+
+          publish_location="$(awk 'BEGIN { IGNORECASE=1 } /^location:/ { sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit }' "$publish_headers")"
+          if [[ -z "$publish_location" ]]; then
+            echo "Edge submission response did not include a Location header" >&2
+            exit 1
+          fi
+
+          publish_operation_id="${publish_location%/}"
+          publish_operation_id="${publish_operation_id##*/}"
+          wait_for_operation \
+            "${API_ROOT}/v1/products/${EDGE_PRODUCT_ID}/submissions/operations/${publish_operation_id}" \
+            "publish"
+
+          publish_message="$(jq -r '.message // "Submission created"' "${RUNNER_TEMP}/edge-publish-result.json")"
+          {
+            echo "### Microsoft Edge Add-ons"
+            echo
+            echo "- Version: ${GITHUB_REF_NAME}"
+            echo "- Result: ${publish_message}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          rm -f "$upload_headers" "$upload_body" "$publish_headers" "$publish_body"

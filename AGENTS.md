@@ -76,6 +76,8 @@ bun run preview
 - `vite.config.ts` 使用相对资源基址 `./`，以保证 `index.html` 在扩展协议下正确加载 `assets/`。
 - `dist/index.html` 不得包含内联执行脚本，所有运行代码应由 Vite 输出到 `dist/assets/`，以满足 Manifest V3 CSP。
 - 发布版本时同步更新 `package.json` 和 `public/manifest.json` 的版本号；需要时一并更新 `README.md` 的版本历史。
+- `release.yml` 会在创建 GitHub Release 后自动通过 Microsoft Edge Add-ons API 提交商店审核，依赖 `EDGE_API_KEY`、`EDGE_CLIENT_ID` 和 `EDGE_PRODUCT_ID` 三个仓库 Actions secrets。
+- 发布工作流不得输出 API 密钥，不要启用包含请求头的详细 HTTP 日志。续订 Partner Center API 密钥后要同步更新仓库 secret。
 - 不要提交 `dist/`、压缩包、日志、环境文件或本地缓存。
 
 ## 提交前检查

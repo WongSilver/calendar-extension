@@ -81,7 +81,15 @@ calendar-extension/
 仓库包含两个工作流：
 
 - `CI`：推送到 `main`/`master` 或提交 Pull Request 时，安装锁定依赖、运行 ESLint、执行类型检查和 Vite 构建，并上传 `dist/` 作为构建产物。
-- `Release`：推送 `v*` 标签时，校验标签、`package.json` 与 `public/manifest.json` 的版本一致，构建扩展，将 `dist/` 根目录压缩为 ZIP，并创建 GitHub Release。
+- `Release`：推送 `v*` 标签时，校验标签、`package.json` 与 `public/manifest.json` 的版本一致，构建扩展，将 `dist/` 根目录压缩为 ZIP，创建 GitHub Release，并通过 Microsoft Edge Add-ons API 提交商店审核。
+
+自动提交 Edge 商店需要在仓库的 Actions secrets 中配置：
+
+- `EDGE_API_KEY`：Partner Center 的 Publish API 密钥。
+- `EDGE_CLIENT_ID`：Partner Center 的 Publish API Client ID。
+- `EDGE_PRODUCT_ID`：扩展概述页面显示的 Product ID。
+
+API 密钥有有效期。续订密钥后，需要同步更新 `EDGE_API_KEY`；旧密钥会立即失效。
 
 发布新版本前，同时更新 `package.json` 和 `public/manifest.json` 中的版本，然后创建标签：
 
@@ -89,6 +97,8 @@ calendar-extension/
 git tag v1.0.3
 git push origin v1.0.3
 ```
+
+工作流会等待 Edge 完成包校验并成功创建提交。提交成功表示版本已进入 Microsoft 审核队列，不代表已经在商店生效。
 
 ## 技术栈
 
