@@ -120,7 +120,7 @@ const DateDetailCard = memo(function DateDetailCard({
   const fullLunar = getFullLunarInfo(selectedDate);
 
   return (
-    <Card className="shrink-0 p-0" style={{ height: SIDEBAR_HEIGHTS.dateDetail }}>
+    <Card className="shrink-0 gap-1 rounded-md border-border/70 p-0 shadow-none" style={{ height: SIDEBAR_HEIGHTS.dateDetail }}>
       <CardHeader className="pb-0 pt-1 px-2">
         <CardTitle className="text-sm">{format(selectedDate, 'M月d日')}</CardTitle>
       </CardHeader>
@@ -140,15 +140,15 @@ const DateDetailCard = memo(function DateDetailCard({
         {hasHolidayData && (
           <div className="pt-0.5">
             {holidayInfo.name ? (
-              <Badge className={`${holidayInfo.isHoliday ? 'bg-red-500' : 'bg-orange-500'} ${fontSize.dateDetail_small} h-4 px-1`}>
+              <Badge className={`${holidayInfo.isHoliday ? 'bg-red-500' : 'bg-orange-500'} ${fontSize.dateDetail_small} h-4 max-w-full px-1 leading-none`}>
                 {holidayInfo.isHoliday ? '🎉 ' : '💼 '}
                 {holidayInfo.name}
                 {holidayInfo.isWorkday ? '（调休）' : ''}
               </Badge>
             ) : holidayInfo.isWeekend ? (
-              <Badge variant="outline" className={`${fontSize.dateDetail_small} h-4 px-1`}>周末休息</Badge>
+              <Badge variant="outline" className={`${fontSize.dateDetail_small} h-4 max-w-full px-1 leading-none`}>周末休息</Badge>
             ) : (
-              <Badge variant="outline" className={`${fontSize.dateDetail_small} h-4 px-1`}>工作日</Badge>
+              <Badge variant="outline" className={`${fontSize.dateDetail_small} h-4 max-w-full px-1 leading-none`}>工作日</Badge>
             )}
           </div>
         )}
@@ -173,7 +173,7 @@ const StatsCard = memo(function StatsCard({
   ];
 
   return (
-    <Card className="shrink-0 p-0" style={{ height: SIDEBAR_HEIGHTS.stats }}>
+    <Card className="shrink-0 gap-1 rounded-md border-border/70 p-0 shadow-none" style={{ height: SIDEBAR_HEIGHTS.stats }}>
       <CardHeader className="pb-0 pt-1 px-2">
         <CardTitle className="text-xs flex items-center gap-1">
           <BarChart3 className="h-3 w-3" />
@@ -216,7 +216,7 @@ const NextHolidayCard = memo(function NextHolidayCard({
   const hasNext = currentIndex < holidays.length - 1;
 
   return (
-    <Card className="shrink-0 p-0" style={{ height: SIDEBAR_HEIGHTS.nextHoliday }}>
+    <Card className="shrink-0 gap-1 rounded-md border-border/70 p-0 shadow-none" style={{ height: SIDEBAR_HEIGHTS.nextHoliday }}>
       <CardHeader className="pb-0 pt-1 px-2">
         <CardTitle className="text-xs flex items-center justify-between">
           <div className="flex items-center gap-1">
@@ -289,8 +289,8 @@ export const CalendarSidebar = memo(function CalendarSidebar({
 
   return (
     <div
-      className="calendar-sidebar shrink-0 flex flex-col gap-1"
-      style={{ width: LAYOUT.sidebarWidth, height: LAYOUT.calendarHeight }}
+      className="calendar-sidebar shrink-0 flex flex-col"
+      style={{ width: LAYOUT.sidebarWidth, height: LAYOUT.calendarHeight, gap: LAYOUT.gap }}
     >
       <DateDetailCard
         selectedDate={selectedDate}

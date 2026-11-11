@@ -305,7 +305,7 @@ export function ChineseCalendar() {
     return (
       <div className="w-full flex justify-center">
         <div className="flex items-center justify-center"
-          style={{ width: LAYOUT.calendarWidth + LAYOUT.sidebarWidth + 14, height: LAYOUT.calendarHeight + 8 }}>
+          style={{ width: LAYOUT.calendarWidth + LAYOUT.sidebarWidth + LAYOUT.gap + 8, height: LAYOUT.calendarHeight + 8 }}>
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-muted-foreground">正在准备日历...</p>
@@ -327,9 +327,9 @@ export function ChineseCalendar() {
           </div>
         )}
 
-        <div className="calendar-layout">
+        <div className="calendar-layout" style={{ gap: LAYOUT.gap }}>
           <div ref={wheelAreaRef} className="calendar-panel shrink-0">
-            <Card className="calendar-card p-0 flex flex-col" style={{ width: LAYOUT.calendarWidth, height: LAYOUT.calendarHeight }}>
+            <Card className="calendar-card gap-2 rounded-md border-border/80 p-0 shadow-xs flex flex-col" style={{ width: LAYOUT.calendarWidth, height: LAYOUT.calendarHeight }}>
               <CardHeader className="pb-0 pt-1 px-3">
                 <div className="calendar-toolbar">
                   <div className="flex items-center gap-1 shrink-0">
@@ -377,7 +377,7 @@ export function ChineseCalendar() {
                                   {format(new Date(cacheTime), 'MM-dd HH:mm')}
                                 </span>
                               )}
-                              <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={handleRefresh} disabled={isRefreshing} aria-label="刷新节假日数据" title="刷新节假日数据">
+                              <Button variant="outline" size="sm" className="h-6 w-6 p-0" onClick={handleRefresh} disabled={isRefreshing} aria-label="刷新节假日数据" title="刷新节假日数据">
                                 <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
                               </Button>
                             </div>
@@ -521,16 +521,16 @@ function ToggleButtonGroup<T extends string | number | boolean>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-0.5 rounded-md border bg-muted/30 p-0.5" role="group">
       {options.map((opt) => {
         const isSelected = value === opt.value;
         const Icon = opt.icon;
         return (
           <Button
             key={String(opt.value)}
-            variant={isSelected ? 'default' : 'outline'}
+            variant={isSelected ? 'default' : 'ghost'}
             size="sm"
-            className="flex-1 h-6 text-[10px] px-1"
+            className="h-6 flex-1 rounded-sm px-1 text-[10px] shadow-none"
             onClick={() => onChange(opt.value)}
             aria-label={opt.ariaLabel ?? opt.label}
             aria-pressed={isSelected}
