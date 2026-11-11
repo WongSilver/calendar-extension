@@ -47,9 +47,9 @@ bun run preview
 - 支持年份范围为 1900 至 2100；修改导航逻辑时保持下拉选项、按钮导航和滚轮导航的边界一致。
 - 节假日数据源为 `https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json`。若更换域名，还必须同步更新 `public/manifest.json` 的 `host_permissions`。
 - 节假日 API 数据会转换为 `{ name, date, type }`，日期格式固定为本地日历语义的 `YYYY-MM-DD`，`type` 只能是 `holiday` 或 `workday`。
-- 节假日缓存键为 `chinese-holidays-cache` 和 `chinese-holidays-cache-time`。缓存默认永久有效，仅在用户手动刷新成功后原子替换。
+- 节假日缓存键为 `chinese-holidays-cache` 和 `chinese-holidays-cache-time`。无缓存时自动请求；缓存满 7 天后先显示旧数据，再在后台刷新。
 - 用户设置存储在 `chinese-calendar-settings`，新增设置字段时应提供默认值，并保持对旧缓存的兼容合并。
-- 外部 API 不可用时，界面仍应能用周末规则展示基础日历；不要让请求失败阻塞日历使用，也不要在失败时删除已有缓存。
+- 外部 API 不可用时继续使用已有缓存；不要让请求失败阻塞日历使用，也不要在失败时删除已有缓存。
 - 主题由 `next-themes` 管理；读取主题或浏览器 API 时继续处理首次挂载状态。
 
 ## UI 与扩展约束

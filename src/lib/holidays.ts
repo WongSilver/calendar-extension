@@ -1,4 +1,4 @@
-// 中国节假日数据 - 直接从外部 API 获取，并缓存到 localStorage
+// 中国节假日数据 - 从外部 API 获取，并缓存到 localStorage
 
 export interface Holiday {
   name: string;
@@ -16,7 +16,8 @@ export interface HolidayInfo {
 // localStorage 缓存键
 const CACHE_KEY = 'chinese-holidays-cache';
 const CACHE_TIME_KEY = 'chinese-holidays-cache-time';
-// 缓存永久有效，只有用户手动刷新时才更新
+const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const REQUEST_TIMEOUT = 10 * 1000;
 
 // 外部 API URL
 const HOLIDAY_API_URL = 'https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json';
@@ -107,7 +108,8 @@ function loadFromLocalStorage(): Holiday[] | null {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
-      return JSON.parse(cached);
+      const parsed = JSON.parse(cached);
+      return Array.isArray(parsed) ? parsed : null;
     }
   } catch (error) {
     console.error('Failed to load holidays from localStorage:', error);
@@ -130,36 +132,38 @@ function saveToLocalStorage(holidays: Holiday[]): void {
 
 // 从外部 API 获取节假日数据
 async function fetchHolidaysFromAPI(): Promise<Holiday[]> {
-  const response = await fetch(HOLIDAY_API_URL);
+  const response = await fetch(HOLIDAY_API_URL, {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+  });
   if (!response.ok) throw new Error(`Failed to fetch holidays: ${response.status}`);
   const holidays = transformHolidayData(await response.json());
   if (!holidays.length) throw new Error('Holiday API returned no data');
   return holidays;
 }
 
-// 确保数据已加载
-async function ensureDataLoaded(): Promise<void> {
-  if (isInitialized && holidaysCache.length > 0) return;
+export interface HolidayInitializationResult {
+  hasData: boolean;
+  shouldRefresh: boolean;
+}
 
-  const cached = loadFromLocalStorage();
-
-  // 使用缓存（永久有效）
-  if (cached?.length) {
-    holidaysCache = cached;
-    holidayMapCache = buildHolidayMap(holidaysCache);
+// 同步加载已有缓存，让过期缓存也能先显示，再由界面后台更新。
+export function initializeHolidays(): HolidayInitializationResult {
+  if (!isInitialized) {
+    const cached = loadFromLocalStorage();
+    if (cached?.length) {
+      holidaysCache = cached;
+      holidayMapCache = buildHolidayMap(cached);
+    }
     isInitialized = true;
-    return;
   }
 
-  // 无缓存时从 API 获取
-  const holidays = await fetchHolidaysFromAPI();
-
-  if (holidays.length > 0) {
-    holidaysCache = holidays;
-    holidayMapCache = buildHolidayMap(holidaysCache);
-    saveToLocalStorage(holidays);
-  }
-  isInitialized = true;
+  const cacheTime = getCacheTime();
+  return {
+    hasData: holidaysCache.length > 0,
+    shouldRefresh: holidaysCache.length === 0
+      || cacheTime === null
+      || Date.now() - cacheTime >= CACHE_MAX_AGE,
+  };
 }
 
 /**
@@ -205,13 +209,6 @@ export function formatDate(date: Date): string {
 }
 
 /**
- * 初始化节假日数据
- */
-export async function initializeHolidays(): Promise<void> {
-  await ensureDataLoaded();
-}
-
-/**
  * 强制刷新节假日数据
  */
 export async function refreshHolidays(): Promise<void> {
@@ -230,7 +227,9 @@ export function getCacheTime(): number | null {
   
   try {
     const timestamp = localStorage.getItem(CACHE_TIME_KEY);
-    return timestamp ? parseInt(timestamp, 10) : null;
+    if (!timestamp) return null;
+    const parsed = Number(timestamp);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   } catch {
     return null;
   }

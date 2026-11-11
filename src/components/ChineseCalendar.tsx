@@ -49,6 +49,7 @@ import {
 
 const SETTINGS_KEY = 'chinese-calendar-settings';
 const REFRESH_COOLDOWN = 10 * 60 * 1000;
+const AUTO_REFRESH_DELAYS = [0, 1000, 3000];
 interface Settings {
   weekStartsOn: 0 | 1;
   showTooltip: boolean;
@@ -81,6 +82,25 @@ const settingsStorage = {
     }
   },
 };
+
+async function refreshHolidaysAutomatically(): Promise<void> {
+  let lastError: unknown;
+
+  for (const delay of AUTO_REFRESH_DELAYS) {
+    if (delay > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
+    try {
+      await refreshHolidays();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
 
 // 生成日历数据（42天）
 function generateCalendarData(startDate: Date, referenceDate: Date): CalendarDay[] {
@@ -134,19 +154,38 @@ export function ChineseCalendar() {
 
   // 加载节假日数据
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
-      setIsLoading(true);
+      const initialization = initializeHolidays();
+      if (initialization.hasData) {
+        setHasHolidayData(true);
+        setCacheTime(getCacheTime());
+        setDataVersion(v => v + 1);
+        setIsLoading(false);
+      }
+
+      if (!initialization.shouldRefresh) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        await initializeHolidays();
+        await refreshHolidaysAutomatically();
+        if (cancelled) return;
         setHasHolidayData(getHolidaysData().length > 0);
         setCacheTime(getCacheTime());
         setDataVersion(v => v + 1);
       } catch (error) {
-        console.error('Failed to load holidays:', error);
+        console.warn('Failed to update holidays automatically:', error);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // 显示提示
