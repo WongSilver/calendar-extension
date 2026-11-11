@@ -5,8 +5,6 @@ import type { HolidayInfo } from './holidays';
 export const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 export const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 export const YEARS = Array.from({ length: 201 }, (_, i) => 1900 + i);
-export const CHINESE_NUMBERS = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
-
 // 日期范围限制
 export const MIN_YEAR = 1900;
 export const MAX_YEAR = 2100;
@@ -132,18 +130,8 @@ export function getFullLunarInfo(date: Date): FullLunarInfo {
   const monthGanZhi = lunar.getMonthInGanZhi();
   const dayGanZhi = lunar.getDayInGanZhi();
 
-  // 数九信息
-  let nineInfo = '';
-  const prevJieQi = lunar.getPrevJieQi(false);
-  if (prevJieQi?.getName() === '冬至') {
-    const dongZhiSolar = prevJieQi.getSolar();
-    const dongZhiDate = new Date(dongZhiSolar.getYear(), dongZhiSolar.getMonth() - 1, dongZhiSolar.getDay());
-    const diffDays = Math.floor((date.getTime() - dongZhiDate.getTime()) / (24 * 60 * 60 * 1000));
-    const nineNum = Math.floor(diffDays / 9) + 1;
-    if (nineNum >= 1 && nineNum <= 9) {
-      nineInfo = `${CHINESE_NUMBERS[nineNum - 1]}九天`;
-    }
-  }
+  const shuJiu = lunar.getShuJiu();
+  const nineInfo = shuJiu ? `${shuJiu.toString()}天` : '';
 
   return {
     lunarDay,

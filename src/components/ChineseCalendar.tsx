@@ -49,8 +49,6 @@ import {
 
 const SETTINGS_KEY = 'chinese-calendar-settings';
 const REFRESH_COOLDOWN = 10 * 60 * 1000;
-const DAY_MS = 1000 * 60 * 60 * 24;
-
 interface Settings {
   weekStartsOn: 0 | 1;
   showTooltip: boolean;
@@ -195,7 +193,13 @@ export function ChineseCalendar() {
     }
 
     setCurrentDate(newDate);
+    setSelectedDate(newDate);
   }, [currentDate, showAlert]);
+
+  const goToDate = useCallback((date: Date) => {
+    setCurrentDate(date);
+    setSelectedDate(date);
+  }, []);
 
   const goToToday = useCallback(() => {
     setCurrentDate(new Date());
@@ -239,6 +243,7 @@ export function ChineseCalendar() {
       setHasHolidayData(getHolidaysData().length > 0);
       setCacheTime(getCacheTime());
       setLastRefreshTime(now);
+      setDataVersion(v => v + 1);
       showAlert('✓ 已刷新');
     } catch {
       showAlert('刷新失败，请稍后重试');
@@ -255,7 +260,7 @@ export function ChineseCalendar() {
     });
   }, []);
 
-  const selectedHolidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate]);
+  const selectedHolidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate, dataVersion]);
   const weekdays = settings.weekStartsOn === 1 ? ['一', '二', '三', '四', '五', '六', '日'] : WEEKDAYS;
 
   if (isLoading) {
@@ -265,7 +270,7 @@ export function ChineseCalendar() {
           style={{ width: LAYOUT.calendarWidth + LAYOUT.sidebarWidth + 14, height: LAYOUT.calendarHeight + 8 }}>
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">加载节假日数据...</p>
+            <p className="text-muted-foreground">正在准备日历...</p>
           </div>
         </div>
       </div>
@@ -273,8 +278,8 @@ export function ChineseCalendar() {
   }
 
   return (
-    <div className="w-full flex justify-center">
-      <div className="relative select-none">
+    <div className="calendar-viewport w-full flex justify-center">
+      <div className="relative select-none w-full max-w-[684px]">
         {showLimitToast && (
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/80 text-amber-800 dark:text-amber-100 rounded-lg shadow-lg border border-amber-200 dark:border-amber-700">
@@ -284,11 +289,11 @@ export function ChineseCalendar() {
           </div>
         )}
 
-        <div className="flex gap-1.5 items-start p-1">
-          <div ref={wheelAreaRef} className="shrink-0">
-            <Card className="p-0 flex flex-col" style={{ width: LAYOUT.calendarWidth, height: LAYOUT.calendarHeight }}>
+        <div className="calendar-layout">
+          <div ref={wheelAreaRef} className="calendar-panel shrink-0">
+            <Card className="calendar-card p-0 flex flex-col" style={{ width: LAYOUT.calendarWidth, height: LAYOUT.calendarHeight }}>
               <CardHeader className="pb-0 pt-1 px-3">
-                <div className="flex items-center justify-between gap-1">
+                <div className="calendar-toolbar">
                   <div className="flex items-center gap-1 shrink-0">
                     <Button variant="ghost" size="icon" onClick={() => navigate('prev', 'year')} title="上一年" className="h-8 w-8">
                       <ChevronsLeft className="h-4 w-4" />
@@ -298,16 +303,16 @@ export function ChineseCalendar() {
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Select value={String(currentYear)} onValueChange={(v) => setCurrentDate(new Date(parseInt(v), currentMonth - 1, 1))} onOpenChange={setIsSelectOpen}>
-                      <SelectTrigger className="w-[100px] h-8"><SelectValue placeholder="年份" /></SelectTrigger>
+                  <div className="calendar-main-controls">
+                    <Select value={String(currentYear)} onValueChange={(v) => goToDate(new Date(parseInt(v), currentMonth - 1, 1))} onOpenChange={setIsSelectOpen}>
+                      <SelectTrigger className="calendar-year-select w-[100px] h-8"><SelectValue placeholder="年份" /></SelectTrigger>
                       <SelectContent className="max-h-[150px] overflow-y-auto">
                         {YEARS.map(year => <SelectItem key={year} value={String(year)}>{year} 年</SelectItem>)}
                       </SelectContent>
                     </Select>
 
-                    <Select value={String(currentMonth)} onValueChange={(v) => setCurrentDate(new Date(currentYear, parseInt(v) - 1, 1))} onOpenChange={setIsSelectOpen}>
-                      <SelectTrigger className="w-[90px] h-8"><SelectValue placeholder="月份" /></SelectTrigger>
+                    <Select value={String(currentMonth)} onValueChange={(v) => goToDate(new Date(currentYear, parseInt(v) - 1, 1))} onOpenChange={setIsSelectOpen}>
+                      <SelectTrigger className="calendar-month-select w-[90px] h-8"><SelectValue placeholder="月份" /></SelectTrigger>
                       <SelectContent className="max-h-[150px] overflow-y-auto">
                         {MONTHS.map(month => <SelectItem key={month} value={String(month)}>{month} 月</SelectItem>)}
                       </SelectContent>
@@ -320,7 +325,7 @@ export function ChineseCalendar() {
 
                     <Popover open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="设置" title="设置">
                           <Settings className="h-4 w-4 text-muted-foreground" />
                         </Button>
                       </PopoverTrigger>
@@ -334,7 +339,7 @@ export function ChineseCalendar() {
                                   {format(new Date(cacheTime), 'MM-dd HH:mm')}
                                 </span>
                               )}
-                              <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={handleRefresh} disabled={isRefreshing}>
+                              <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={handleRefresh} disabled={isRefreshing} aria-label="刷新节假日数据" title="刷新节假日数据">
                                 <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
                               </Button>
                             </div>
@@ -351,7 +356,11 @@ export function ChineseCalendar() {
                           {mounted && (
                             <SettingSection title="主题">
                               <ToggleButtonGroup
-                                options={[{ value: 'light', icon: Sun }, { value: 'dark', icon: Moon }, { value: 'system', icon: Monitor }]}
+                                options={[
+                                  { value: 'light', icon: Sun, ariaLabel: '亮色主题' },
+                                  { value: 'dark', icon: Moon, ariaLabel: '暗色主题' },
+                                  { value: 'system', icon: Monitor, ariaLabel: '跟随系统主题' },
+                                ]}
                                 value={theme ?? 'system'}
                                 onChange={setTheme}
                               />
@@ -446,7 +455,8 @@ export function ChineseCalendar() {
             hasHolidayData={hasHolidayData}
             holidayInfo={selectedHolidayInfo}
             dateFontSize={settings.dateFontSize}
-            onNavigate={(date) => setCurrentDate(date)}
+            dataVersion={dataVersion}
+            onNavigate={goToDate}
           />
         </div>
       </div>
@@ -468,7 +478,7 @@ function ToggleButtonGroup<T extends string | number | boolean>({
   value,
   onChange,
 }: {
-  options: { value: T; label?: string; icon?: React.ComponentType<{ className?: string }> }[];
+  options: { value: T; label?: string; icon?: React.ComponentType<{ className?: string }>; ariaLabel?: string }[];
   value: T;
   onChange: (value: T) => void;
 }) {
@@ -484,6 +494,9 @@ function ToggleButtonGroup<T extends string | number | boolean>({
             size="sm"
             className="flex-1 h-6 text-[10px] px-1"
             onClick={() => onChange(opt.value)}
+            aria-label={opt.ariaLabel ?? opt.label}
+            aria-pressed={isSelected}
+            title={opt.ariaLabel}
           >
             {Icon ? <Icon className="h-3 w-3" /> : opt.label}
           </Button>

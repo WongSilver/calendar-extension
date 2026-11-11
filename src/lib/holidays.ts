@@ -130,13 +130,11 @@ function saveToLocalStorage(holidays: Holiday[]): void {
 
 // 从外部 API 获取节假日数据
 async function fetchHolidaysFromAPI(): Promise<Holiday[]> {
-  try {
-    const response = await fetch(HOLIDAY_API_URL);
-    if (!response.ok) throw new Error('Failed to fetch holidays');
-    return transformHolidayData(await response.json());
-  } catch {
-    return [];
-  }
+  const response = await fetch(HOLIDAY_API_URL);
+  if (!response.ok) throw new Error(`Failed to fetch holidays: ${response.status}`);
+  const holidays = transformHolidayData(await response.json());
+  if (!holidays.length) throw new Error('Holiday API returned no data');
+  return holidays;
 }
 
 // 确保数据已加载
@@ -217,14 +215,11 @@ export async function initializeHolidays(): Promise<void> {
  * 强制刷新节假日数据
  */
 export async function refreshHolidays(): Promise<void> {
-  isInitialized = false;
-  
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(CACHE_KEY);
-    localStorage.removeItem(CACHE_TIME_KEY);
-  }
-  
-  await ensureDataLoaded();
+  const holidays = await fetchHolidaysFromAPI();
+  holidaysCache = holidays;
+  holidayMapCache = buildHolidayMap(holidays);
+  isInitialized = true;
+  saveToLocalStorage(holidays);
 }
 
 /**

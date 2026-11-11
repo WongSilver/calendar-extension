@@ -13,19 +13,8 @@ node_modules
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
 # production
-/build
-
-# extension build output (only ignore generated files)
-/extension/index.html
-/extension/_not-found.*
-/extension/next-assets/
-/extension/inline-scripts/
-/extension/*.txt
+/dist/
 
 # release packages
 *.zip
@@ -43,22 +32,5 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
-next-env.d.ts
-local-*
-.claude
-.z-ai-config
-dev.log
-test
-prompt
-
-server.log
-# Skills directory
-/skills/
-
-# upload directory
-/upload/

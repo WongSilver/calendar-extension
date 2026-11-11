@@ -23,8 +23,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Verify release version
+        shell: bash
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_VERSION="$(bun -e "console.log(require('./package.json').version)")"
+          MANIFEST_VERSION="$(bun -e "console.log(require('./public/manifest.json').version)")"
+          test "$TAG_VERSION" = "$PACKAGE_VERSION"
+          test "$TAG_VERSION" = "$MANIFEST_VERSION"
+
       - name: Build extension
-        run: bun run build:extension
+        run: bun run build
 
       - name: Get version from tag
         id: get_version
@@ -32,7 +41,7 @@ jobs:
 
       - name: Create ZIP archive
         run: |
-          cd extension
+          cd dist
           zip -r ../chinese-holiday-calendar-${{ steps.get_version.outputs.VERSION }}.zip .
 
       - name: Create Release
@@ -41,13 +50,13 @@ jobs:
           name: 中国节假日日历 ${{ steps.get_version.outputs.VERSION }}
           body: |
             ## 中国节假日日历 ${{ steps.get_version.outputs.VERSION }}
-            
+
             ### 功能特性
-            - 🗓️ 农历显示
-            - 🎉 节假日标记
-            - 🖱️ 滚轮切换月份
-            - 🌙 深色模式支持
-            
+            - 农历显示
+            - 节假日标记
+            - 滚轮切换月份
+            - 深色模式支持
+
             ### 安装方式
             1. 下载 `chinese-holiday-calendar-${{ steps.get_version.outputs.VERSION }}.zip`
             2. 解压文件

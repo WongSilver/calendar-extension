@@ -15,6 +15,7 @@ interface CalendarSidebarProps {
   hasHolidayData: boolean;
   holidayInfo: HolidayInfo;
   dateFontSize: FontSize;
+  dataVersion: number;
   onNavigate?: (date: Date) => void;
 }
 
@@ -65,40 +66,43 @@ function getFutureHolidays(): NextHoliday[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 按假期名称分组
-  const holidayMap = new Map<string, string[]>();
+  const futureDates = holidays
+    .filter(h => h.type === 'holiday' && new Date(`${h.date}T00:00:00`) >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (!futureDates.length) return [];
 
-  holidays
-    .filter(h => h.type === 'holiday' && new Date(h.date) >= today)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .forEach(h => {
-      const dates = holidayMap.get(h.name) || [];
-      dates.push(h.date);
-      holidayMap.set(h.name, dates);
-    });
-
-  if (!holidayMap.size) return [];
-
-  const result: NextHoliday[] = [];
   const DAY_MS = 1000 * 60 * 60 * 24;
+  const groups: { name: string; dates: string[] }[] = [];
 
-  holidayMap.forEach((dates, name) => {
+  futureDates.forEach((holiday) => {
+    const previousGroup = groups.at(-1);
+    const previousDate = previousGroup?.dates.at(-1);
+    const isConsecutive = previousDate
+      ? new Date(`${holiday.date}T00:00:00`).getTime() - new Date(`${previousDate}T00:00:00`).getTime() === DAY_MS
+      : false;
+
+    if (previousGroup?.name === holiday.name && isConsecutive) {
+      previousGroup.dates.push(holiday.date);
+    } else {
+      groups.push({ name: holiday.name, dates: [holiday.date] });
+    }
+  });
+
+  return groups.map(({ dates, name }) => {
     const startDate = new Date(dates[0] + 'T00:00:00');
     const daysLeft = Math.ceil((startDate.getTime() - today.getTime()) / DAY_MS);
     const start = dates[0];
     const end = dates[dates.length - 1];
 
-    result.push({
+    return {
       name,
       daysLeft,
       dateRange: start === end
-        ? format(new Date(start), 'M.d')
-        : `${format(new Date(start), 'M.d')}-${format(new Date(end), 'M.d')}`,
+        ? format(new Date(`${start}T00:00:00`), 'M.d')
+        : `${format(new Date(`${start}T00:00:00`), 'M.d')}-${format(new Date(`${end}T00:00:00`), 'M.d')}`,
       startDate,
-    });
-  });
-
-  return result.sort((a, b) => a.daysLeft - b.daysLeft);
+    };
+  }).sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
 // 日期详情模块
@@ -232,6 +236,8 @@ const NextHolidayCard = memo(function NextHolidayCard({
             className="h-6 w-6 shrink-0 rounded-full p-0"
             onClick={onPrev}
             disabled={!hasPrev}
+            aria-label="上一个节假日"
+            title="上一个节假日"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -256,6 +262,8 @@ const NextHolidayCard = memo(function NextHolidayCard({
             className="h-6 w-6 shrink-0 rounded-full p-0"
             onClick={onNext}
             disabled={!hasNext}
+            aria-label="下一个节假日"
+            title="下一个节假日"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -271,16 +279,17 @@ export const CalendarSidebar = memo(function CalendarSidebar({
   hasHolidayData,
   holidayInfo,
   dateFontSize,
+  dataVersion,
   onNavigate,
 }: CalendarSidebarProps) {
-  const monthStats = useMemo(() => calculateMonthStats(currentDate, hasHolidayData), [currentDate, hasHolidayData]);
-  const futureHolidays = useMemo(() => hasHolidayData ? getFutureHolidays() : [], [hasHolidayData]);
+  const monthStats = useMemo(() => calculateMonthStats(currentDate, hasHolidayData), [currentDate, hasHolidayData, dataVersion]);
+  const futureHolidays = useMemo(() => hasHolidayData ? getFutureHolidays() : [], [hasHolidayData, dataVersion]);
   const [holidayIndex, setHolidayIndex] = useState(0);
   const fontSize = SIDEBAR_FONT_CONFIGS[dateFontSize];
 
   return (
     <div
-      className="shrink-0 flex flex-col gap-1"
+      className="calendar-sidebar shrink-0 flex flex-col gap-1"
       style={{ width: LAYOUT.sidebarWidth, height: LAYOUT.calendarHeight }}
     >
       <DateDetailCard
