@@ -244,7 +244,7 @@ const NextHolidayCard = memo(function NextHolidayCard({
 
           <div className="text-center flex-1 min-w-0 leading-tight">
             <button
-              className={`${fontSize.nextHoliday_name} font-bold text-red-600 dark:text-red-300 truncate cursor-pointer hover:text-red-700 dark:hover:text-red-200 transition-colors`}
+              className={`${fontSize.nextHoliday_name} font-bold text-red-600 dark:text-red-300 truncate cursor-pointer rounded-sm outline-none hover:text-red-700 dark:hover:text-red-200 focus-visible:ring-2 focus-visible:ring-red-400/70 transition-colors`}
               onClick={() => onNavigate(holiday.startDate)}
               title="跳转到该月份"
             >

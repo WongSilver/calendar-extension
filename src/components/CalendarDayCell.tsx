@@ -32,9 +32,11 @@ export const CalendarDayCell = memo(function CalendarDayCell({
   const cellContent = (
     <button
       onClick={() => onSelect(day.date)}
+      aria-pressed={isSelected}
       className={`
         relative p-1 h-[52px] rounded-lg transition-all duration-150
         hover:scale-105 cursor-pointer
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70
         ${isSelected ? '' : 'hover:shadow-md'}
         ${bgClass} ${textClass} ${borderClass}
         flex flex-col items-center justify-start

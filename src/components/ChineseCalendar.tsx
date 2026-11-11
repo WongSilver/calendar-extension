@@ -193,7 +193,6 @@ export function ChineseCalendar() {
     }
 
     setCurrentDate(newDate);
-    setSelectedDate(newDate);
   }, [currentDate, showAlert]);
 
   const goToDate = useCallback((date: Date) => {
