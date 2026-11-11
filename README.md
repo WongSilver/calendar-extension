@@ -113,3 +113,7 @@ git push origin v1.0.3
 ## 许可证
 
 MIT License
+
+## 隐私政策
+
+本扩展不收集个人信息或浏览历史。完整说明见 [PRIVACY.md](./PRIVACY.md)。
