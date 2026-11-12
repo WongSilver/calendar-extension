@@ -94,8 +94,8 @@ API 密钥有有效期。续订密钥后，需要同步更新 `EDGE_API_KEY`；�
 发布新版本前，同时更新 `package.json` 和 `public/manifest.json` 中的版本，然后创建标签：
 
 ```bash
-git tag v1.0.3
-git push origin v1.0.3
+git tag v1.0.4
+git push origin v1.0.4
 ```
 
 工作流会等待 Edge 完成包校验并成功创建提交。提交成功表示版本已进入 Microsoft 审核队列，不代表已经在商店生效。
@@ -117,3 +117,12 @@ MIT License
 ## 隐私政策
 
 本扩展不收集个人信息或浏览历史。完整说明见 [PRIVACY.md](./PRIVACY.md)。
+
+设置与节假日缓存使用 `localStorage`，不需要扩展的 `storage` 权限。扩展仅申请获取节假日数据所需的 `https://www.shuyz.com/*` 主机权限。
+
+## 版本历史
+
+### 1.0.4
+
+- 移除未使用的 `storage` 权限，保留现有本地设置和节假日缓存功能。
+- 同步更正隐私政策和 Chrome 应用商店权限说明。

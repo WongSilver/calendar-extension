@@ -51,6 +51,7 @@ bun run preview
 - 用户设置存储在 `chinese-calendar-settings`，新增设置字段时应提供默认值，并保持对旧缓存的兼容合并。
 - 外部 API 不可用时继续使用已有缓存；不要让请求失败阻塞日历使用，也不要在失败时删除已有缓存。
 - 主题由 `next-themes` 管理；读取主题或浏览器 API 时继续处理首次挂载状态。
+- 设置、主题和节假日缓存均使用 Web Storage API（`localStorage`），不需要扩展的 `storage` 权限。只有实际引入 `chrome.storage` 或 `browser.storage` 时才考虑申请该权限，并同步更新隐私政策与商店说明。
 
 ## UI 与扩展约束
 
